@@ -1,0 +1,38 @@
+[project]
+name = "autonomous-local-knowledge-to-anki-pipeline"
+version = "0.1.0"
+description = "Multi-agent AI system that extracts knowledge from Siyuan Notes and creates optimized Anki flashcards using AutoGen"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+keywords = ["autogen", "ai-agents", "anki", "flashcards", "siyuan", "llm", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "autogen-agentchat>=0.4",
+    "autogen-ext[openai]>=0.4",
+    "python-dotenv>=1.0.0",
+    "requests>=2.31.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.4.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
