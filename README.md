@@ -30,37 +30,38 @@ This project demonstrates four key agentic design patterns from the [DeepLearnin
 
 ## Architecture
 
-```
-                              ┌─────────────────────────────────────┐
-                              │         REFLECTION LOOP             │
-User Request                  │                                     │
-     │                        │  ┌──────────────┐                   │
-     v                        │  │              │                   │
-┌──────────────────┐          │  v              │                   │
-│ Knowledge_Manager│──────────┼────────────────────────────────────►│ Siyuan Notes API
-│   (Orchestrator) │          │  ┌────────────┐ │  ┌─────────────┐  │ (fetch_siyuan_notes)
-└────────┬─────────┘          │  │Card_Writer │─┼─►│Card_Reviewer│  │
-         │                    │  │  (Drafts)  │ │  │  (Critiques)│  │
-         │                    │  └────────────┘ │  └──────┬──────┘  │
-         │                    │        ^        │         │         │
-         │                    │        │ REJECTED         │APPROVED │
-         │                    │        └──────────────────┘         │
-         │                    └─────────────────────────────────────┘
-         │                                      │
-         │                                      v
-         │                              ┌───────────┐
-         │                              │   Admin   │ ◄── Human approval
-         │                              │  (Human)  │
-         │                              └─────┬─────┘
-         │                                    │ APPROVE
-         v                                    v
-┌──────────────────┐                  ┌───────────────┐
-│ Knowledge_Manager│──────────────────►│ AnkiConnect  │
-│  (Saves cards)   │ push_to_anki()   │     API      │
-└──────────────────┘                  └───────────────┘
-         │
-         v
-     TERMINATE
+```mermaid
+flowchart TD
+    subgraph External["External Services"]
+        Siyuan[("🗃️ Siyuan Notes API")]
+        Anki[("📚 AnkiConnect API")]
+    end
+
+    subgraph Agents["Multi-Agent System"]
+        KM["🎯 Knowledge_Manager<br/><i>Orchestrator</i>"]
+        
+        subgraph Reflection["Reflection Loop"]
+            CW["✍️ Card_Writer<br/><i>Drafts cards</i>"]
+            CR["🔍 Card_Reviewer<br/><i>Validates quality</i>"]
+        end
+        
+        Admin["👤 Admin<br/><i>Human approval</i>"]
+    end
+
+    User((User Request)) --> KM
+    KM -->|"fetch_siyuan_notes()"| Siyuan
+    Siyuan -.->|"Note content"| KM
+    KM --> CW
+    CW -->|"Draft cards"| CR
+    CR -->|"❌ REJECTED"| CW
+    CR -->|"✅ APPROVED"| Admin
+    Admin -->|"✅ APPROVE"| KM
+    KM -->|"push_to_anki()"| Anki
+    KM --> Terminate([TERMINATE])
+
+    style Reflection fill:#e8f4e8,stroke:#2e7d32
+    style External fill:#e3f2fd,stroke:#1565c0
+    style Admin fill:#fff3e0,stroke:#ef6c00
 ```
 
 **Key Flow:**
