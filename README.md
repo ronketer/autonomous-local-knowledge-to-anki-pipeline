@@ -79,7 +79,6 @@ class PipelineLogger:
 - **Debugging**: Trace exactly what each agent said and why
 - **Auditing**: Verify the decision path before cards were written to Anki
 - **Guardrails**: See when rejection caps (2) triggered human escalation
-- **Portfolio**: Shows you understand that "if it happened, it should be logged" (production best practice)
 
 ## Features
 
@@ -89,6 +88,37 @@ class PipelineLogger:
 - **Local-First**: Works with Ollama or any OpenAI-compatible LLM server - no cloud API keys required
 - **GPU Acceleration**: Ollama 0.17+ supports Intel Arc, NVIDIA, and AMD GPUs
 - **Structured Logging**: JSON traces of every run for debugging and auditing
+- **Pydantic Validation**: Cards validated against schema before writing to Anki (prevents malformed data)
+
+## Testing
+
+Validate the pipeline without external services:
+
+```bash
+# Check syntax and imports
+python -m py_compile main.py src/anki_pipeline/*.py
+
+# Verify configuration
+python -c "from src.anki_pipeline.config import config; errors = config.validate(); print('✓ Config OK' if not errors else f'Errors: {errors}')"
+
+# Test logger and Pydantic validation
+python << 'EOF'
+from src.anki_pipeline.logger import PipelineLogger
+from src.anki_pipeline.models import FlashcardList
+from pydantic import ValidationError
+
+# Test logger
+logger = PipelineLogger()
+logger.log_agent_message('Card_Writer', 'Test', 'message')
+logger.log_rejection('Test rejection')
+print(f'✓ Logger: {logger.save()}')
+
+# Test Pydantic validation
+cards = {'cards': [{'front': 'Q?', 'back': 'A'}]}
+validated = FlashcardList.model_validate(cards)
+print(f'✓ Pydantic: {len(validated.cards)} card(s) validated')
+EOF
+```
 
 ## Architecture Diagram
 
@@ -194,7 +224,7 @@ Required settings:
 1. Start Ollama and pull a model:
    ```bash
    ollama serve  # if not already running
-   ollama pull qwen2.5-coder:3b  # recommended for function calling
+   ollama pull qwen2.5-coder:3b  # Fast, reliable for multi-agent (~3B params)
    ```
 2. Start Siyuan Notes
 3. Start Anki (with AnkiConnect running)
@@ -254,7 +284,6 @@ Every pipeline run produces a **`logs/{timestamp}.json`** file with a complete e
 - **Debugging**: Trace exactly what each agent said and why
 - **Auditing**: Verify the decision path before cards were written
 - **Guardrails**: See when rejection caps triggered human escalation
-- **Portfolio**: Shows production-aware design (observability is not optional)
 
 ## Flashcard Quality Standards
 
@@ -277,7 +306,7 @@ Best for local inference with GPU acceleration:
 
 ```env
 LLM_BASE_URL=http://127.0.0.1:11434/v1
-LLM_MODEL_ID=qwen2.5-coder:3b
+LLM_MODEL_ID=qwen2.5-coder:3b  # ~3B params, fast and reliable
 ```
 
 > ⚠️ **Model Size Warning**: Models smaller than ~4B parameters may not follow multi-agent workflows correctly. They tend to skip agents, ignore the reflection loop, or call tools with placeholder values. Use 4B+ parameter models for reliable results.
@@ -308,11 +337,11 @@ LLM_MODEL_ID=your-model-name
 
 ## Technologies
 
-- [AutoGen 0.4+](https://microsoft.github.io/autogen/) - Multi-agent orchestration
-- [Pydantic](https://docs.pydantic.dev/) - Data validation and structured output
-- [Ollama](https://ollama.com/) - Local LLM inference with GPU acceleration (Intel, NVIDIA, AMD)
-- [Siyuan Notes](https://b3log.org/siyuan/) - Local-first knowledge management
-- [AnkiConnect](https://ankiweb.net/shared/info/2055492159) - Anki automation API
+- [AutoGen 0.4+](https://microsoft.github.io/autogen/) - Multi-agent orchestration with `SelectorGroupChat`
+- [Pydantic v2](https://docs.pydantic.dev/) - Schema validation before Anki writes
+- [Ollama](https://ollama.com/) - Local LLM inference with GPU acceleration (Intel Arc, NVIDIA, AMD)
+- [Siyuan Notes](https://b3log.org/siyuan/) - Local-first knowledge management via REST API
+- [AnkiConnect](https://ankiweb.net/shared/info/2055492159) - Anki card creation via HTTP API
 
 ## License
 
